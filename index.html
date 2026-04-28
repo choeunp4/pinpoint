@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PinPoint</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0d0f14;
+  --surface:   #161922;
+  --surface2:  #1e2330;
+  --surface3:  #252b3b;
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.13);
+  --text:      #eef0f6;
+  --text2:     #8b91a8;
+  --text3:     #565d76;
+  --accent:    #4f7cff;
+  --accent2:   #6e96ff;
+  --accent-bg: rgba(79,124,255,0.12);
+  --accent-glow: rgba(79,124,255,0.25);
+  --green:     #34d399;
+  --red:       #f87171;
+  --radius:    14px;
+  --radius-sm: 8px;
+  --shadow:    0 8px 32px rgba(0,0,0,0.4);
+  --shadow-lg: 0 20px 60px rgba(0,0,0,0.6);
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 2px; }
+
+header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(13,15,20,0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  height: 60px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo {
+  font-size: 20px; font-weight: 800; letter-spacing: -0.5px;
+  display: flex; align-items: center; gap: 8px;
+}
+.logo-icon {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+.btn-new {
+  background: var(--accent); color: #fff;
+  border: none; padding: 8px 16px;
+  border-radius: 10px; font-family: 'Outfit', sans-serif;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s; box-shadow: 0 0 20px var(--accent-glow);
+}
+.btn-new:hover { background: var(--accent2); transform: translateY(-1px); }
+
+.screen { display: none; animation: fadeUp 0.25s ease; }
+.screen.active { display: block; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+/* HOME */
+#screen-home { padding: 24px 20px 80px; }
+.home-hd { margin-bottom: 22px; }
+.home-hd h2 { font-size: 26px; font-weight: 700; letter-spacing:-0.5px; }
+.home-hd p { color: var(--text2); font-size: 14px; margin-top: 4px; }
+
+.projects-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.project-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+  cursor: pointer; transition: all 0.2s; position: relative;
+}
+.project-card:hover { border-color: var(--border2); transform: translateY(-2px); box-shadow: var(--shadow); }
+.project-card:active { transform: scale(0.97); }
+.card-thumb {
+  width: 100%; aspect-ratio: 4/3;
+  background: var(--surface2); overflow: hidden;
+  position: relative; display: flex; align-items:center; justify-content:center;
+}
+.card-thumb img { width:100%; height:100%; object-fit:cover; }
+.card-thumb .ti { font-size: 28px; color: var(--text3); }
+.card-thumb::after {
+  content:''; position:absolute; inset:0;
+  background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.55));
+}
+.pin-chip {
+  position:absolute; top:10px; right:10px; z-index:2;
+  background: var(--accent); color:#fff;
+  font-size:11px; font-weight:700;
+  font-family:'JetBrains Mono',monospace;
+  padding:3px 8px; border-radius:20px;
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+.card-info { padding: 12px; }
+.card-info h3 { font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.card-info p { font-size:12px; color:var(--text2); margin-top:3px; }
+
+.new-card {
+  background: var(--surface);
+  border: 1.5px dashed rgba(79,124,255,0.35);
+  border-radius: var(--radius); aspect-ratio: 1.2;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:8px; cursor:pointer; transition:all 0.2s;
+}
+.new-card:hover { border-color: var(--accent); background: var(--accent-bg); }
+.new-card .plus { font-size:24px; color:var(--accent); }
+.new-card span { font-size:13px; font-weight:600; color:var(--accent); }
+
+/* PROJECT */
+.proj-topbar {
+  background: rgba(13,15,20,0.9);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px; height: 56px;
+  display:flex; align-items:center; gap:12px;
+  position: sticky; top: 60px; z-index: 90;
+}
+.back-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text); width:34px; height:34px;
+  border-radius: var(--radius-sm); font-size:18px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition: background 0.2s;
+}
+.back-btn:hover { background: var(--surface3); }
+.proj-topbar h2 { font-size:16px; font-weight:700; flex:1; letter-spacing:-0.3px; }
+.icon-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text2); width:34px; height:34px;
+  border-radius: var(--radius-sm); font-size:15px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition: all 0.2s;
+}
+.icon-btn:hover { background: var(--surface3); color: var(--text); }
+
+/* UPLOAD ZONE */
+.upload-zone {
+  margin: 20px;
+  border: 1.5px dashed rgba(79,124,255,0.3);
+  border-radius: var(--radius); background: var(--surface);
+  padding: 48px 20px; text-align:center; transition:all 0.2s;
+}
+.upload-zone:hover { border-color:var(--accent); background: var(--accent-bg); }
+.uz-icon { font-size:36px; margin-bottom:12px; }
+.upload-zone h4 { font-size:16px; font-weight:600; margin-bottom:6px; }
+.upload-zone p { font-size:13px; color:var(--text2); margin-bottom:18px; }
+.upload-btns { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.upload-btn {
+  background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text); padding:9px 18px;
+  border-radius:10px; font-family:'Outfit',sans-serif;
+  font-size:13px; font-weight:600; cursor:pointer; transition:all 0.2s;
+  display:flex; align-items:center; gap:6px;
+}
+.upload-btn:hover { background: var(--surface3); border-color: var(--accent); }
+.upload-btn.primary {
+  background: var(--accent); border-color:var(--accent);
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+.upload-btn.primary:hover { background: var(--accent2); }
+
+/* TOOLBAR */
+.ann-toolbar {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 10px 16px; display:flex; align-items:center; justify-content:space-between;
+}
+.mode-pill {
+  display:flex; background: var(--surface2);
+  border: 1px solid var(--border); border-radius:10px; padding:3px; gap:2px;
+}
+.mode-btn {
+  background:none; border:none; color:var(--text2);
+  font-family:'Outfit',sans-serif; font-size:13px; font-weight:600;
+  padding:6px 14px; border-radius:8px; cursor:pointer; transition:all 0.2s;
+}
+.mode-btn.active { background:var(--accent); color:#fff; box-shadow:0 0 12px var(--accent-glow); }
+.tb-hint { font-size:12px; color:var(--text3); font-family:'JetBrains Mono',monospace; }
+
+/* ANNOTATOR */
+.ann-wrap { position:relative; background:#000; line-height:0; }
+.ann-wrap img.main-img { display:block; width:100%; height:auto; pointer-events:none; user-select:none; }
+.tap-overlay { position:absolute; inset:0; z-index:5; cursor:crosshair; }
+.tap-overlay.view-mode { cursor:default; }
+
+/* PINS */
+.pin {
+  position:absolute; transform:translate(-50%,-100%);
+  z-index:10; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center;
+  animation: pinDrop 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes pinDrop {
+  from { transform:translate(-50%,-160%) scale(0.5); opacity:0; }
+  to   { transform:translate(-50%,-100%) scale(1); opacity:1; }
+}
+.pin-head {
+  width:30px; height:30px; border-radius:50% 50% 50% 0;
+  background:var(--accent); transform:rotate(-45deg);
+  border:2px solid rgba(255,255,255,0.25);
+  box-shadow:0 0 0 3px var(--accent-glow), 0 4px 12px rgba(0,0,0,0.5);
+  display:flex; align-items:center; justify-content:center; transition:all 0.2s;
+}
+.pin:hover .pin-head, .pin.active .pin-head {
+  background:#fff; box-shadow:0 0 0 4px var(--accent-glow), 0 4px 16px rgba(0,0,0,0.5);
+}
+.pin-num {
+  transform:rotate(45deg); color:#fff; font-size:11px; font-weight:700;
+  font-family:'JetBrains Mono',monospace; line-height:1; transition:color 0.2s;
+}
+.pin:hover .pin-num, .pin.active .pin-num { color:var(--accent); }
+.pin-tail { width:2px; height:7px; background:var(--accent); margin-top:-1px; }
+.pin-tip {
+  position:absolute; top:-6px; left:36px;
+  background:rgba(0,0,0,0.85); backdrop-filter:blur(8px);
+  color:#fff; font-size:11px; font-weight:500;
+  padding:4px 10px; border-radius:6px;
+  white-space:nowrap; pointer-events:none; opacity:0; transition:opacity 0.2s;
+  border:1px solid var(--border2);
+  max-width:130px; overflow:hidden; text-overflow:ellipsis;
+}
+.pin:hover .pin-tip, .pin.active .pin-tip { opacity:1; }
+
+/* PINS LIST */
+.pins-section { padding: 20px 20px 80px; }
+.section-title {
+  font-size:13px; font-weight:700; color:var(--text2);
+  text-transform:uppercase; letter-spacing:0.1em; margin-bottom:14px;
+}
+.pin-row {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); padding:14px; margin-bottom:8px;
+  display:flex; align-items:center; gap:12px;
+  cursor:pointer; transition:all 0.2s; position:relative;
+}
+.pin-row:hover { border-color:var(--border2); background:var(--surface2); }
+.pin-row:active { transform:scale(0.98); }
+.pin-num-badge {
+  width:32px; height:32px;
+  background:var(--accent-bg); border:1px solid rgba(79,124,255,0.3);
+  border-radius:10px; display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700; color:var(--accent);
+  font-family:'JetBrains Mono',monospace; flex-shrink:0;
+}
+.pin-row-info { flex:1; min-width:0; }
+.pin-row-info h4 { font-size:14px; font-weight:600; }
+.pin-row-info p { font-size:12px; color:var(--text2); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.row-thumbs { display:flex; gap:4px; }
+.row-thumb { width:36px; height:36px; border-radius:8px; object-fit:cover; background:var(--surface2); border:1px solid var(--border); }
+.pin-del {
+  position:absolute; top:10px; right:10px;
+  background:none; border:none; color:var(--text3); font-size:18px;
+  cursor:pointer; line-height:1; padding:2px; transition:color 0.2s;
+}
+.pin-del:hover { color:var(--red); }
+.empty-state { text-align:center; padding:40px 20px; color:var(--text2); }
+.empty-state .ei { font-size:40px; margin-bottom:10px; opacity:0.4; }
+.empty-state p { font-size:14px; }
+
+/* PANEL */
+.backdrop {
+  position:fixed; inset:0; background:rgba(0,0,0,0.6);
+  backdrop-filter:blur(4px); z-index:200;
+  opacity:0; pointer-events:none; transition:opacity 0.3s;
+}
+.backdrop.open { opacity:1; pointer-events:all; }
+.panel {
+  position:fixed; bottom:0; left:0; right:0;
+  background:var(--surface); border-radius:20px 20px 0 0;
+  border-top:1px solid var(--border2); z-index:201;
+  transform:translateY(100%);
+  transition:transform 0.38s cubic-bezier(0.32,0.72,0,1);
+  max-height:88vh; overflow-y:auto;
+  padding-bottom:env(safe-area-inset-bottom,24px);
+}
+.panel.open { transform:translateY(0); }
+.panel-drag { width:40px; height:4px; background:var(--surface3); border-radius:2px; margin:14px auto 0; }
+.panel-head {
+  padding:14px 18px; display:flex; align-items:center; gap:12px;
+  border-bottom:1px solid var(--border);
+}
+.panel-badge {
+  width:32px; height:32px; background:var(--accent); border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; font-weight:700; font-family:'JetBrains Mono',monospace;
+  flex-shrink:0; box-shadow:0 0 12px var(--accent-glow);
+}
+.panel-label {
+  font-family:'Outfit',sans-serif; font-size:17px; font-weight:700;
+  background:none; border:none; color:var(--text); flex:1; outline:none; width:100%;
+}
+.panel-label::placeholder { color:var(--text3); }
+.close-btn {
+  background:var(--surface2); border:1px solid var(--border);
+  color:var(--text2); width:30px; height:30px; border-radius:50%; font-size:15px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s;
+}
+.close-btn:hover { background:var(--surface3); color:var(--text); }
+.panel-body { padding:18px; }
+.field-label { font-size:11px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:8px; }
+.notes-ta {
+  width:100%; background:var(--surface2); border:1px solid var(--border);
+  border-radius:10px; padding:11px 13px;
+  font-family:'Outfit',sans-serif; font-size:14px; color:var(--text);
+  resize:none; outline:none; min-height:72px; transition:border-color 0.2s;
+}
+.notes-ta:focus { border-color:var(--accent); }
+.notes-ta::placeholder { color:var(--text3); }
+
+/* DETAIL PHOTOS */
+.detail-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:8px; margin-bottom:14px; }
+.detail-card {
+  aspect-ratio:1; border-radius:10px; overflow:hidden;
+  position:relative; background:var(--surface2); border:1px solid var(--border); cursor:pointer;
+}
+.detail-card img { width:100%; height:100%; object-fit:cover; }
+.d-del {
+  position:absolute; top:5px; right:5px;
+  background:rgba(0,0,0,0.7); border:none; color:#fff;
+  width:22px; height:22px; border-radius:50%; font-size:12px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+.d-note {
+  position:absolute; bottom:0; left:0; right:0;
+  background:linear-gradient(transparent, rgba(0,0,0,0.75));
+  padding:12px 6px 5px; font-size:10px; color:rgba(255,255,255,0.85);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.add-photo-tile {
+  aspect-ratio:1; border-radius:10px;
+  border:1.5px dashed rgba(79,124,255,0.35); background:var(--accent-bg);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:4px; cursor:pointer; transition:all 0.2s;
+}
+.add-photo-tile:hover { border-color:var(--accent); }
+.apt-icon { font-size:20px; color:var(--accent); }
+.apt-btn {
+  background:none; border:none; color:var(--accent);
+  font-size:11px; font-weight:600; font-family:'Outfit',sans-serif;
+  cursor:pointer; padding:3px 8px; border-radius:6px; transition:background 0.2s;
+}
+.apt-btn:hover { background:rgba(79,124,255,0.15); }
+
+/* CAMERA */
+.camera-modal {
+  position:fixed; inset:0; background:#000; z-index:500;
+  display:none; flex-direction:column;
+}
+.camera-modal.open { display:flex; }
+.cam-bar {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 20px; position:absolute; top:0; left:0; right:0; z-index:10;
+}
+.cam-bar button {
+  background:rgba(255,255,255,0.15); backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:50%;
+  width:42px; height:42px; font-size:18px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+.cam-title { color:#fff; font-size:15px; font-weight:600; }
+#cam-video { flex:1; object-fit:cover; width:100%; }
+.cam-bottom {
+  position:absolute; bottom:0; left:0; right:0;
+  padding:30px 30px calc(30px + env(safe-area-inset-bottom,0px));
+  display:flex; align-items:center; justify-content:center; gap:40px;
+}
+.shutter-btn {
+  width:72px; height:72px; background:#fff; border-radius:50%;
+  border:4px solid rgba(255,255,255,0.3); cursor:pointer;
+  box-shadow:0 0 0 3px rgba(255,255,255,0.2); transition:transform 0.1s; flex-shrink:0;
+}
+.shutter-btn:active { transform:scale(0.9); }
+.flip-btn {
+  background:rgba(255,255,255,0.15); backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,0.2); color:#fff; border-radius:50%;
+  width:48px; height:48px; font-size:22px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+#cam-canvas { display:none; }
+
+/* VIEWER */
+.viewer { position:fixed; inset:0; background:rgba(0,0,0,0.96); z-index:400; display:none; flex-direction:column; }
+.viewer.open { display:flex; }
+.viewer-bar { padding:16px 18px; display:flex; align-items:center; justify-content:space-between; }
+.viewer-bar button {
+  background:var(--surface2); border:1px solid var(--border); color:var(--text);
+  width:36px; height:36px; border-radius:50%; font-size:18px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+}
+.v-counter { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--text2); }
+.viewer-img { flex:1; display:flex; align-items:center; justify-content:center; padding:0 20px; overflow:hidden; }
+.viewer-img img { max-width:100%; max-height:100%; object-fit:contain; border-radius:10px; }
+.viewer-nav { display:flex; align-items:center; justify-content:center; gap:24px; padding:20px; }
+.viewer-nav button {
+  background:var(--surface2); border:1px solid var(--border); color:var(--text);
+  width:50px; height:50px; border-radius:50%; font-size:24px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s;
+}
+.viewer-nav button:hover { background:var(--surface3); }
+
+/* MODALS */
+.modal-wrap {
+  position:fixed; inset:0; background:rgba(0,0,0,0.7);
+  backdrop-filter:blur(8px); z-index:600;
+  display:none; align-items:center; justify-content:center; padding:20px;
+}
+.modal-wrap.open { display:flex; }
+.modal-box {
+  background:var(--surface); border:1px solid var(--border2);
+  border-radius:18px; padding:24px; width:100%; max-width:380px;
+  box-shadow:var(--shadow-lg); animation:fadeUp 0.2s ease;
+}
+.modal-box h3 { font-size:20px; font-weight:700; margin-bottom:16px; }
+.modal-input {
+  width:100%; background:var(--surface2); border:1px solid var(--border);
+  border-radius:10px; padding:12px 14px;
+  font-family:'Outfit',sans-serif; font-size:15px; color:var(--text);
+  outline:none; margin-bottom:12px; transition:border-color 0.2s;
+}
+.modal-input:focus { border-color:var(--accent); }
+.modal-input::placeholder { color:var(--text3); }
+.modal-actions { display:flex; gap:10px; }
+.mbtn { flex:1; border:none; padding:12px; border-radius:10px; font-family:'Outfit',sans-serif; font-size:15px; font-weight:600; cursor:pointer; transition:all 0.2s; }
+.mbtn-cancel { background:var(--surface2); color:var(--text2); border:1px solid var(--border); }
+.mbtn-cancel:hover { background:var(--surface3); }
+.mbtn-ok { background:var(--accent); color:#fff; box-shadow:0 0 16px var(--accent-glow); }
+.mbtn-ok:hover { background:var(--accent2); }
+
+/* TOAST */
+.toast {
+  position:fixed; bottom:28px; left:50%;
+  transform:translateX(-50%) translateY(80px);
+  background:var(--surface2); border:1px solid var(--border2);
+  color:var(--text); padding:10px 20px; border-radius:30px;
+  font-size:13px; font-weight:500; z-index:700; transition:transform 0.3s;
+  white-space:nowrap; box-shadow:var(--shadow);
+  display:flex; align-items:center; gap:8px;
+}
+.toast.show { transform:translateX(-50%) translateY(0); }
+.toast-dot { width:7px; height:7px; border-radius:50%; background:var(--green); flex-shrink:0; }
+
+input[type="file"] { display:none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><div class="logo-icon">📍</div>PinPoint</div>
+  <button class="btn-new" onclick="openNewModal()">+ New</button>
+</header>
+
+<!-- HOME -->
+<div id="screen-home" class="screen active">
+  <div class="home-hd">
+    <h2>Projects</h2>
+    <p>Tap a project to annotate and detail any item.</p>
+  </div>
+  <div class="projects-grid" id="projects-grid"></div>
+</div>
+
+<!-- PROJECT -->
+<div id="screen-project" class="screen">
+  <div class="proj-topbar">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <h2 id="proj-title">Project</h2>
+    <button class="icon-btn" onclick="renameProject()">✏️</button>
+    <button class="icon-btn" onclick="deleteProject()">🗑</button>
+  </div>
+
+  <div id="no-photo">
+    <div class="upload-zone">
+      <div class="uz-icon">🖼️</div>
+      <h4>Add Main Photo</h4>
+      <p>Your wide-angle overview shot. Drop pins on specific areas to link detail photos.</p>
+      <div class="upload-btns">
+        <button class="upload-btn primary" onclick="openCamera('main')">📷 Take Photo</button>
+        <button class="upload-btn" onclick="document.getElementById('file-main').click()">📁 Upload</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="has-photo" style="display:none">
+    <div class="ann-toolbar">
+      <div class="mode-pill">
+        <button class="mode-btn active" id="btn-pin" onclick="setMode('pin')">📌 Pin</button>
+        <button class="mode-btn" id="btn-view" onclick="setMode('view')">👁 View</button>
+      </div>
+      <span class="tb-hint" id="tb-hint">Tap to drop pin</span>
+    </div>
+    <div class="ann-wrap" id="ann-wrap">
+      <img class="main-img" id="main-img" src="" alt="">
+      <div class="tap-overlay" id="tap-overlay"></div>
+    </div>
+  </div>
+
+  <div class="pins-section">
+    <div class="section-title">Reference Points</div>
+    <div id="pins-list"></div>
+  </div>
+</div>
+
+<!-- BACKDROP + PANEL -->
+<div class="backdrop" id="backdrop" onclick="closePanel()"></div>
+<div class="panel" id="panel">
+  <div class="panel-drag"></div>
+  <div class="panel-head">
+    <div class="panel-badge" id="panel-badge">1</div>
+    <input class="panel-label" id="panel-label" type="text" placeholder="Label this point…" oninput="syncLabel()">
+    <button class="close-btn" onclick="closePanel()">✕</button>
+  </div>
+  <div class="panel-body">
+    <div class="field-label">Notes</div>
+    <textarea class="notes-ta" id="panel-notes" placeholder="Describe this reference point…" rows="3"></textarea>
+    <div class="field-label" style="margin-top:18px">Detail Photos</div>
+    <div class="detail-grid" id="detail-grid"></div>
+  </div>
+</div>
+
+<!-- CAMERA -->
+<div class="camera-modal" id="camera">
+  <div class="cam-bar">
+    <button onclick="closeCamera()">✕</button>
+    <span class="cam-title" id="cam-title">Take Photo</span>
+    <button onclick="flipCam()">🔄</button>
+  </div>
+  <video id="cam-video" autoplay playsinline muted></video>
+  <canvas id="cam-canvas"></canvas>
+  <div class="cam-bottom">
+    <button class="flip-btn" onclick="flipCam()">🔄</button>
+    <button class="shutter-btn" onclick="capturePhoto()"></button>
+    <div style="width:48px"></div>
+  </div>
+</div>
+
+<!-- VIEWER -->
+<div class="viewer" id="viewer">
+  <div class="viewer-bar">
+    <button onclick="closeViewer()">✕</button>
+    <span class="v-counter" id="v-counter">1 / 1</span>
+    <button onclick="deleteViewed()">🗑</button>
+  </div>
+  <div class="viewer-img"><img id="v-img" src="" alt=""></div>
+  <div class="viewer-nav">
+    <button onclick="prevPhoto()">‹</button>
+    <button onclick="nextPhoto()">›</button>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-wrap" id="modal-new">
+  <div class="modal-box">
+    <h3>New Project</h3>
+    <input class="modal-input" id="new-name" type="text" placeholder="e.g. 2020 Ford F-150, Master Bath…" maxlength="60">
+    <div class="modal-actions">
+      <button class="mbtn mbtn-cancel" onclick="closeModal('modal-new')">Cancel</button>
+      <button class="mbtn mbtn-ok" onclick="createProject()">Create</button>
+    </div>
+  </div>
+</div>
+<div class="modal-wrap" id="modal-rename">
+  <div class="modal-box">
+    <h3>Rename Project</h3>
+    <input class="modal-input" id="rename-val" type="text" maxlength="60">
+    <div class="modal-actions">
+      <button class="mbtn mbtn-cancel" onclick="closeModal('modal-rename')">Cancel</button>
+      <button class="mbtn mbtn-ok" onclick="confirmRename()">Save</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="file-main" accept="image/*" onchange="handleMainFile(event)">
+<input type="file" id="file-detail" accept="image/*" multiple onchange="handleDetailFiles(event)">
+
+<div class="toast" id="toast"><div class="toast-dot"></div>Saved</div>
+
+<script>
+let S = { projects:{} };
+let CUR = null, MODE = 'pin', CURPIN = null;
+let VPHOTOS = [], VIDX = 0;
+let CAM_STREAM = null, CAM_FACING = 'environment', CAM_TARGET = null;
+
+function load() { try { const s=localStorage.getItem('pp4'); if(s) S=JSON.parse(s); } catch(e){} }
+function persist() { localStorage.setItem('pp4',JSON.stringify(S)); showToast(); }
+function showToast() {
+  const t=document.getElementById('toast'); t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2000);
+}
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function P(){ return S.projects[CUR]; }
+function pin(id){ return P().pins.find(p=>p.id===id); }
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* HOME */
+function renderHome(){
+  const g=document.getElementById('projects-grid');
+  g.innerHTML='';
+  Object.values(S.projects).forEach(p=>{
+    const n=(p.pins||[]).length;
+    const c=document.createElement('div'); c.className='project-card';
+    c.innerHTML=`<div class="card-thumb">${p.mainPhoto?`<img src="${p.mainPhoto}" alt="">`:'<span class="ti">🖼️</span>'}${n?`<div class="pin-chip">${n}p`:''}</div><div class="card-info"><h3>${esc(p.name)}</h3><p>${n} point${n!==1?'s':''}</p></div>`;
+    c.onclick=()=>openProject(p.id); g.appendChild(c);
+  });
+  const nc=document.createElement('div');
+  nc.innerHTML=`<div class="new-card" onclick="openNewModal()"><div class="plus">＋</div><span>New Project</span></div>`;
+  g.appendChild(nc);
+}
+function goHome(){ savePin(); showScreen('screen-home'); renderHome(); }
+
+/* PROJECTS */
+function openNewModal(){ document.getElementById('new-name').value=''; openModal('modal-new'); setTimeout(()=>document.getElementById('new-name').focus(),300); }
+function createProject(){
+  const n=document.getElementById('new-name').value.trim(); if(!n) return;
+  const id='p'+Date.now();
+  S.projects[id]={id,name:n,mainPhoto:null,pins:[]};
+  persist(); closeModal('modal-new'); openProject(id);
+}
+function openProject(id){
+  CUR=id; CURPIN=null;
+  document.getElementById('proj-title').textContent=P().name;
+  showScreen('screen-project');
+  renderPhoto(); renderPinsList(); setMode('pin');
+}
+function deleteProject(){
+  if(!confirm('Delete this project?')) return;
+  delete S.projects[CUR]; persist(); goHome();
+}
+function renameProject(){
+  document.getElementById('rename-val').value=P().name;
+  openModal('modal-rename'); setTimeout(()=>document.getElementById('rename-val').focus(),300);
+}
+function confirmRename(){
+  const n=document.getElementById('rename-val').value.trim(); if(!n) return;
+  P().name=n; document.getElementById('proj-title').textContent=n;
+  persist(); closeModal('modal-rename');
+}
+
+/* PHOTO */
+function handleMainFile(e){
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=ev=>setMainPhoto(ev.target.result); r.readAsDataURL(f);
+  e.target.value='';
+}
+function setMainPhoto(d){
+  P().mainPhoto=d; P().pins=[]; persist(); renderPhoto(); renderPinsList();
+}
+function renderPhoto(){
+  const p=P();
+  if(!p.mainPhoto){ document.getElementById('no-photo').style.display=''; document.getElementById('has-photo').style.display='none'; return; }
+  document.getElementById('no-photo').style.display='none'; document.getElementById('has-photo').style.display='';
+  document.getElementById('main-img').src=p.mainPhoto;
+  renderPins(); document.getElementById('tap-overlay').onclick=handleTap;
+}
+
+/* MODE */
+function setMode(m){
+  MODE=m;
+  document.getElementById('btn-pin').classList.toggle('active',m==='pin');
+  document.getElementById('btn-view').classList.toggle('active',m==='view');
+  document.getElementById('tap-overlay').classList.toggle('view-mode',m!=='pin');
+  document.getElementById('tb-hint').textContent=m==='pin'?'Tap to drop pin':'Tap a pin to inspect';
+}
+
+/* PINS */
+function renderPins(){
+  document.getElementById('ann-wrap').querySelectorAll('.pin').forEach(e=>e.remove());
+  (P().pins||[]).forEach((p,i)=>{
+    const el=document.createElement('div');
+    el.className='pin'+(p.id===CURPIN?' active':'');
+    el.style.left=(p.xPct*100)+'%'; el.style.top=(p.yPct*100)+'%';
+    el.innerHTML=`<div class="pin-head"><span class="pin-num">${i+1}</span></div><div class="pin-tail"></div><div class="pin-tip">${esc(p.label||'Pin '+(i+1))}</div>`;
+    el.onclick=e=>{e.stopPropagation();openPin(p.id);};
+    document.getElementById('ann-wrap').appendChild(el);
+  });
+}
+function handleTap(e){
+  if(MODE!=='pin') return;
+  const r=e.currentTarget.getBoundingClientRect();
+  const id='pin'+Date.now();
+  P().pins.push({id,xPct:(e.clientX-r.left)/r.width,yPct:(e.clientY-r.top)/r.height,label:'',notes:'',photos:[]});
+  persist(); renderPins(); renderPinsList(); openPin(id);
+}
+function renderPinsList(){
+  const list=document.getElementById('pins-list'); const p=P();
+  if(!p.pins||!p.pins.length){
+    list.innerHTML=`<div class="empty-state"><div class="ei">📍</div><p>${p.mainPhoto?'Tap the photo above to drop a pin.':'Add a main photo first.'}</p></div>`; return;
+  }
+  list.innerHTML='';
+  p.pins.forEach((pin,i)=>{
+    const row=document.createElement('div'); row.className='pin-row';
+    const thumbs=(pin.photos||[]).slice(0,3).map(ph=>`<img class="row-thumb" src="${ph.data}" alt="">`).join('');
+    row.innerHTML=`<div class="pin-num-badge">${i+1}</div><div class="pin-row-info"><h4>${esc(pin.label||'Pin '+(i+1))}</h4><p>${pin.photos.length} photo${pin.photos.length!==1?'s':''}${pin.notes?' · '+esc(pin.notes.slice(0,50)):''}</p></div><div class="row-thumbs">${thumbs}</div><button class="pin-del" onclick="delPin(event,'${pin.id}')">×</button>`;
+    row.onclick=()=>openPin(pin.id); list.appendChild(row);
+  });
+}
+function delPin(e,id){ e.stopPropagation(); P().pins=P().pins.filter(p=>p.id!==id); persist(); renderPins(); renderPinsList(); if(CURPIN===id) closePanel(); }
+
+/* PANEL */
+function openPin(id){
+  savePin(); CURPIN=id; renderPins();
+  const p=pin(id); const idx=P().pins.indexOf(p);
+  document.getElementById('panel-badge').textContent=idx+1;
+  document.getElementById('panel-label').value=p.label||'';
+  document.getElementById('panel-notes').value=p.notes||'';
+  renderDetailGrid(p);
+  document.getElementById('backdrop').classList.add('open');
+  document.getElementById('panel').classList.add('open');
+}
+function savePin(){
+  if(!CURPIN||!CUR) return; const p=pin(CURPIN); if(!p) return;
+  p.label=document.getElementById('panel-label').value;
+  p.notes=document.getElementById('panel-notes').value;
+  persist(); renderPins(); renderPinsList();
+}
+function syncLabel(){ if(!CURPIN) return; pin(CURPIN).label=document.getElementById('panel-label').value; renderPins(); }
+function closePanel(){
+  savePin(); CURPIN=null;
+  document.getElementById('backdrop').classList.remove('open');
+  document.getElementById('panel').classList.remove('open');
+  renderPins();
+}
+
+/* DETAIL PHOTOS */
+function renderDetailGrid(p){
+  const g=document.getElementById('detail-grid'); g.innerHTML='';
+  (p.photos||[]).forEach((ph,i)=>{
+    const c=document.createElement('div'); c.className='detail-card';
+    c.innerHTML=`<img src="${ph.data}" alt="" onclick="openViewer(${i})">${ph.note?`<div class="d-note">${esc(ph.note)}</div>`:''}<button class="d-del" onclick="removePhoto(${i})">×</button>`;
+    g.appendChild(c);
+  });
+  const tile=document.createElement('div'); tile.className='add-photo-tile';
+  tile.innerHTML=`<div class="apt-icon">📷</div><button class="apt-btn" onclick="openCamera('detail')">Camera</button><button class="apt-btn" onclick="document.getElementById('file-detail').click()">Upload</button>`;
+  g.appendChild(tile);
+}
+function handleDetailFiles(e){
+  const files=Array.from(e.target.files); if(!files.length||!CURPIN) return;
+  const p=pin(CURPIN); let n=0;
+  files.forEach(f=>{ const r=new FileReader(); r.onload=ev=>{ p.photos.push({data:ev.target.result,note:''}); if(++n===files.length){persist();renderDetailGrid(p);renderPinsList();} }; r.readAsDataURL(f); });
+  e.target.value='';
+}
+function addDetailPhoto(d){ if(!CURPIN) return; const p=pin(CURPIN); p.photos.push({data:d,note:''}); persist(); renderDetailGrid(p); renderPinsList(); }
+function removePhoto(i){ const p=pin(CURPIN); p.photos.splice(i,1); persist(); renderDetailGrid(p); renderPinsList(); }
+
+/* VIEWER */
+function openViewer(i){ VPHOTOS=pin(CURPIN).photos; VIDX=i; showVPhoto(); document.getElementById('viewer').classList.add('open'); }
+function closeViewer(){ document.getElementById('viewer').classList.remove('open'); }
+function showVPhoto(){ document.getElementById('v-img').src=VPHOTOS[VIDX].data; document.getElementById('v-counter').textContent=`${VIDX+1} / ${VPHOTOS.length}`; }
+function nextPhoto(){ if(!VPHOTOS.length) return; VIDX=(VIDX+1)%VPHOTOS.length; showVPhoto(); }
+function prevPhoto(){ if(!VPHOTOS.length) return; VIDX=(VIDX-1+VPHOTOS.length)%VPHOTOS.length; showVPhoto(); }
+function deleteViewed(){
+  const p=pin(CURPIN); p.photos.splice(VIDX,1); persist(); VPHOTOS=p.photos;
+  if(!VPHOTOS.length){ closeViewer(); renderDetailGrid(p); renderPinsList(); return; }
+  VIDX=Math.min(VIDX,VPHOTOS.length-1); showVPhoto(); renderDetailGrid(p); renderPinsList();
+}
+
+/* CAMERA */
+async function openCamera(target){
+  CAM_TARGET=target;
+  document.getElementById('cam-title').textContent=target==='main'?'Main Photo':'Detail Photo';
+  document.getElementById('camera').classList.add('open');
+  await startCam();
+}
+async function startCam(){
+  stopCam();
+  try {
+    CAM_STREAM=await navigator.mediaDevices.getUserMedia({video:{facingMode:CAM_FACING,width:{ideal:1920},height:{ideal:1080}},audio:false});
+    document.getElementById('cam-video').srcObject=CAM_STREAM;
+  } catch(err) {
+    alert('Camera unavailable. Please allow camera permissions, or use the Upload option.');
+    closeCamera();
+  }
+}
+function stopCam(){ if(CAM_STREAM){CAM_STREAM.getTracks().forEach(t=>t.stop());CAM_STREAM=null;} }
+function closeCamera(){ stopCam(); document.getElementById('camera').classList.remove('open'); document.getElementById('cam-video').srcObject=null; }
+async function flipCam(){ CAM_FACING=CAM_FACING==='environment'?'user':'environment'; await startCam(); }
+function capturePhoto(){
+  const v=document.getElementById('cam-video'); const c=document.getElementById('cam-canvas');
+  c.width=v.videoWidth; c.height=v.videoHeight;
+  c.getContext('2d').drawImage(v,0,0);
+  const d=c.toDataURL('image/jpeg',0.85);
+  closeCamera();
+  if(CAM_TARGET==='main') setMainPhoto(d); else addDetailPhoto(d);
+}
+
+/* MODALS */
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+/* KEYBOARD */
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){ closeViewer(); closeCamera(); closePanel(); document.querySelectorAll('.modal-wrap.open').forEach(m=>m.classList.remove('open')); }
+  if(e.key==='Enter'){ if(document.getElementById('modal-new').classList.contains('open')) createProject(); if(document.getElementById('modal-rename').classList.contains('open')) confirmRename(); }
+  if(document.getElementById('viewer').classList.contains('open')){ if(e.key==='ArrowRight') nextPhoto(); if(e.key==='ArrowLeft') prevPhoto(); }
+});
+
+load(); renderHome();
+</script>
+</body>
+</html>
